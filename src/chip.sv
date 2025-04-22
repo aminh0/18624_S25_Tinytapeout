@@ -2,14 +2,14 @@
 
 `timescale 10ns / 10ps
 
-`include "instruction_queue.sv"
-`include "register_file.sv"
-`include "register_alias_table.sv"
-`include "alu_unit.sv"
-`include "alu_reservation_station.sv"
-`include "mem_reservation_station.sv"
-`include "reorder_buffer.sv"
-`include "memory_unit.sv"
+// `include "instruction_queue.sv"
+// `include "register_file.sv"
+// `include "register_alias_table.sv"
+// `include "alu_unit.sv"
+// `include "alu_reservation_station.sv"
+// `include "mem_reservation_station.sv"
+// `include "reorder_buffer.sv"
+// `include "memory_unit.sv"
 
 module my_chip (
     input logic [11:0] io_in, // Inputs to your chip
