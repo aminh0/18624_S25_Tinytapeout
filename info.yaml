@@ -1,11 +1,16 @@
---- 
+---
 project:
   source_files:
-    - toplevel_chip.v
     - chip.sv
-    - decoder.v
-    - RangeFinder.sv
-  top_module:  "toplevel_chip"
+    - instruction_queue.sv
+    - register_file.sv
+    - register_alias_table.sv
+    - alu_unit.sv
+    - alu_reservation_station.sv
+    - mem_reservation_station.sv
+    - reorder_buffer.sv
+    - memory_unit.sv
+  top_module: "my_chip"
 
 # As everyone will have access to all designs, try to make it easy for someone new to your design to know what
 # it does and how to operate it.
@@ -13,34 +18,46 @@ project:
 # Here is an example: https://github.com/mattvenn/tinytapeout_m_segments/blob/main/info.yaml
 #
 # This info will be automatically collected and used to make a datasheet for the chip.
-documentation: 
-  author:       Amin      # Your name
-  discord:      ""      # Your discord handle
-  title:        "PLACEHOLDER"      # Project title
-  description:  "PLACEHOLDER"      # Short description of what your project does
-  how_it_works: "PLACEHOLDER"      # Longer description of how the project works
-  how_to_test:  "PLACEHOLDER"      # Instructions on how someone could test your project, include things like what buttons do what and how to set the clock if needed
-  external_hw:  "PLACEHOLDER"      # Describe any external hardware needed
-  language:     "verilog" # other examples include Verilog, Amaranth, VHDL, etc
-  doc_link:     ""      # URL to longer form documentation, eg the README.md in your repository
-  clock_hz:     1000       # Clock frequency in Hz (if required)
-  picture:      ""      # relative path to a picture in your repository
-  inputs:               # a description of what the inputs do
-    - none
-    - none
-    - none
-    - none
-    - none
-    - none
-    - none
-    - none
+documentation:
+  author: Amin Hong # Your name
+  discord: "" # Your discord handle
+  title: "tiny OoO CPU" # Project title
+  description: "small OoO CPU" # Short description of what your project does
+  how_it_works:
+    "Instructions are streamed in via `io_in`. The CPU processes them using instruction queue,
+    register alias table, ROB, and reservation stations. When execution is complete, the number of cycles
+    and all 8 register values are output one-by-one through `io_out`." # Longer description of how the project works
+  how_to_test:
+    "Provide a sequence of 12-bit instructions on `io_in`. Wait for execution to complete.
+    Observe `io_out` to get the final cycle count followed by 8 register values (r0 to r7)" # Instructions on how someone could test your project, include things like what buttons do what and how to set the clock if needed
+  external_hw: "No external hardware needed" # Describe any external hardware needed
+  language: "systemverilog" # other examples include Verilog, Amaranth, VHDL, etc
+  doc_link: "" # URL to longer form documentation, eg the README.md in your repository
+  clock_hz: 30M # Clock frequency in Hz (if required)
+  picture: "" # relative path to a picture in your repository
+  inputs:
+    - Instruction bit 0
+    - Instruction bit 1
+    - Instruction bit 2
+    - Instruction bit 3
+    - Instruction bit 4
+    - Instruction bit 5
+    - Instruction bit 6
+    - Instruction bit 7
+    - Instruction bit 8
+    - Instruction bit 9
+    - Instruction bit 10
+    - Instruction bit 11
   outputs:
-    - none
-    - none
-    - none
-    - none
-    - none
-    - none
-    - none
-    - none
-
+    - Output bit 0 (reg_out_data[0])
+    - Output bit 1
+    - Output bit 2
+    - Output bit 3 (reg_out_addr[0])
+    - Output bit 4
+    - Output bit 5
+    - Output bit 6 (cycle_count[0])
+    - Output bit 7
+    - Output bit 8
+    - Output bit 9
+    - Output bit 10
+    - Output bit 11
