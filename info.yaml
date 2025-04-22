@@ -1,6 +1,7 @@
 ---
 project:
   source_files:
+    - toplevel_chip.v
     - chip.sv
     - instruction_queue.sv
     - register_file.sv
@@ -10,7 +11,7 @@ project:
     - mem_reservation_station.sv
     - reorder_buffer.sv
     - memory_unit.sv
-  top_module: "my_chip"
+  top_module: "toplevel_chip"
 
 # As everyone will have access to all designs, try to make it easy for someone new to your design to know what
 # it does and how to operate it.
