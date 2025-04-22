@@ -27,19 +27,16 @@ module alu_reservation_station (
     output logic [1:0]  count
 );
 
-  typedef struct packed {
-    logic        busy;
-    logic [1:0]  rob_idx;
-    logic [2:0]  opcode;
-    logic [2:0]  val1;
-    logic [2:0]  val2;
-    logic [1:0]  q1;
-    logic [1:0]  q2;
-    logic        rdy1;
-    logic        rdy2;
-  } rs_entry_t;
-
-  rs_entry_t rs[0:1];
+  // Flattened reservation station entries
+  logic        rs_busy   [0:1];
+  logic [1:0]  rs_rob_idx[0:1];
+  logic [2:0]  rs_opcode [0:1];
+  logic [2:0]  rs_val1   [0:1];
+  logic [2:0]  rs_val2   [0:1];
+  logic [1:0]  rs_q1     [0:1];
+  logic [1:0]  rs_q2     [0:1];
+  logic        rs_rdy1   [0:1];
+  logic        rs_rdy2   [0:1];
 
   logic       found_free;
   int         free_idx;
@@ -53,66 +50,75 @@ module alu_reservation_station (
     free_idx = 0;
     exec_idx = -1;
     for (int i = 0; i < 2; i++) begin
-      if (!found_free && !rs[i].busy) begin
+      if (!found_free && !rs_busy[i]) begin
         free_idx = i;
         found_free = 1;
       end
-      if (exec_idx == -1 && rs[i].busy && rs[i].rdy1 && rs[i].rdy2 && !alu_busy) begin
+      if (exec_idx == -1 && rs_busy[i] && rs_rdy1[i] && rs_rdy2[i] && !alu_busy) begin
         exec_idx = i;
       end
     end
   end
 
-  assign exec_opcode  = (exec_idx != -1) ? rs[exec_idx].opcode : 3'd0;
-  assign exec_val1    = (exec_idx != -1) ? rs[exec_idx].val1   : 3'd0;
-  assign exec_val2    = (exec_idx != -1) ? rs[exec_idx].val2   : 3'd0;
-  assign exec_rob_idx = (exec_idx != -1) ? rs[exec_idx].rob_idx: 2'd0;
+  assign exec_opcode  = (exec_idx != -1) ? rs_opcode[exec_idx]  : 3'd0;
+  assign exec_val1    = (exec_idx != -1) ? rs_val1[exec_idx]    : 3'd0;
+  assign exec_val2    = (exec_idx != -1) ? rs_val2[exec_idx]    : 3'd0;
+  assign exec_rob_idx = (exec_idx != -1) ? rs_rob_idx[exec_idx] : 2'd0;
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       for (int i = 0; i < 2; i++) begin
-        rs[i] <= '0;
+        rs_busy[i]    <= 0;
+        rs_rob_idx[i] <= 0;
+        rs_opcode[i]  <= 0;
+        rs_val1[i]    <= 0;
+        rs_val2[i]    <= 0;
+        rs_q1[i]      <= 0;
+        rs_q2[i]      <= 0;
+        rs_rdy1[i]    <= 0;
+        rs_rdy2[i]    <= 0;
       end
       count <= 0;
     end else begin
-      // CDB broadcast
+      // CDB broadcast update
       for (int i = 0; i < 2; i++) begin
-        if (rs[i].busy) begin
-          if (!rs[i].rdy1 && cdb_en && rs[i].q1 == cdb_rob_idx) begin
-            rs[i].val1 <= cdb_val;
-            rs[i].rdy1 <= 1;
+        if (rs_busy[i]) begin
+          if (!rs_rdy1[i] && cdb_en && rs_q1[i] == cdb_rob_idx) begin
+            rs_val1[i] <= cdb_val;
+            rs_rdy1[i] <= 1;
           end
-          if (!rs[i].rdy2 && cdb_en && rs[i].q2 == cdb_rob_idx) begin
-            rs[i].val2 <= cdb_val;
-            rs[i].rdy2 <= 1;
+          if (!rs_rdy2[i] && cdb_en && rs_q2[i] == cdb_rob_idx) begin
+            rs_val2[i] <= cdb_val;
+            rs_rdy2[i] <= 1;
           end
         end
       end
 
       // Write entry
       if (write_en && found_free) begin
-        rs[free_idx].busy    <= 1;
-        rs[free_idx].rob_idx <= rob_idx;
-        rs[free_idx].opcode  <= opcode;
-        rs[free_idx].val1    <= val1;
-        rs[free_idx].val2    <= val2;
-        rs[free_idx].q1      <= q1;
-        rs[free_idx].q2      <= q2;
-        rs[free_idx].rdy1    <= ready1;
-        rs[free_idx].rdy2    <= ready2;
+        rs_busy[free_idx]    <= 1;
+        rs_rob_idx[free_idx] <= rob_idx;
+        rs_opcode[free_idx]  <= opcode;
+        rs_val1[free_idx]    <= val1;
+        rs_val2[free_idx]    <= val2;
+        rs_q1[free_idx]      <= q1;
+        rs_q2[free_idx]      <= q2;
+        rs_rdy1[free_idx]    <= ready1;
+        rs_rdy2[free_idx]    <= ready2;
       end
 
-      // Clear entry after execution
-      if (exec_idx != -1) begin
-        if(!(rs_ready && write_en)) begin
-        	rs[exec_idx].busy <= 0;
-        end
+      // Clear after execution (unless simultaneous write)
+      if (exec_idx != -1 && !(rs_ready && write_en)) begin
+        rs_busy[exec_idx] <= 0;
       end
 
-      // Update count
-      if (write_en && (exec_idx == -1)) count <= count + 1;
-      else if (!write_en && (exec_idx != -1)) count <= count - 1;
-      // write & exec both active → no count change
+      // Count update logic
+      if (write_en && (exec_idx == -1)) begin
+        count <= count + 1;
+      end else if (!write_en && (exec_idx != -1)) begin
+        count <= count - 1;
+      end
+      // else: write + exec → count unchanged
     end
   end
 endmodule

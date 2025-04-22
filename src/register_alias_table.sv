@@ -21,38 +21,33 @@ module register_alias_table (
     output logic [1:0] src2_rob
 );
 
-  typedef struct packed {
-    logic valid;           // valid = 0 -> register file
-    logic [1:0] rob_idx;   // rob result
-  } rat_entry_t;
-
-  rat_entry_t rat [0:7]; // 8 general-purpose registers
+  // Flattened RAT arrays
+  logic rat_valid [0:7];
+  logic [1:0] rat_rob_idx [0:7];
 
   // Source operand lookup
-  assign src1_ready = !rat[src1_reg].valid;
-  assign src2_ready = !rat[src2_reg].valid;
-  assign src1_rob   = rat[src1_reg].rob_idx;
-  assign src2_rob   = rat[src2_reg].rob_idx;
+  assign src1_ready = !rat_valid[src1_reg];
+  assign src2_ready = !rat_valid[src2_reg];
+  assign src1_rob   = rat_rob_idx[src1_reg];
+  assign src2_rob   = rat_rob_idx[src2_reg];
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       for (int i = 0; i < 8; i++) begin
-        rat[i].valid <= 1'b0; 
-        rat[i].rob_idx <= 2'b00;
+        rat_valid[i]   <= 1'b0;
+        rat_rob_idx[i] <= 2'b00;
       end
     end else begin
-
-      // Commit:
+      // Commit: clear mapping
       if (commit_en) begin
-        rat[commit_reg].valid <= 1'b0;
+        rat_valid[commit_reg] <= 1'b0;
       end
 
-      // Update
+      // Update: new mapping to ROB
       if (update_en) begin
-        rat[dest_reg].valid <= 1'b1;
-        rat[dest_reg].rob_idx <= rob_tail;
+        rat_valid[dest_reg]   <= 1'b1;
+        rat_rob_idx[dest_reg] <= rob_tail;
       end
-
     end
   end
 
