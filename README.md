@@ -2,7 +2,7 @@
 
 ## Description
 
-This project implements a small Out-of-Order (OoO) CPU capable of issuing, executing, and committing instructions using a modern pipeline structure. It supports basic ALU operations (ADD, SUB, AND, OR, XOR), memory load/store operations (LD, STR), and HALT.
+This project implements a small Out-of-Order (OoO) CPU capable of issuing, executing, and committing instructions using a modern pipeline structure. It supports basic ALU operations (ADD, SUB, AND, OR, XOR), memory load operations, and HALT.
 
 The processor consists of:
 
@@ -33,7 +33,7 @@ For full design details and architecture overview, see `docs/description.pdf`.
 - `011`: OR
 - `100`: XOR
 - `101`: LD
-- `110`: STR
+
 - `111`: HALT
 
 ## Execution Behavior

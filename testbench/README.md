@@ -1,60 +1,64 @@
-# 18-224/624 S25 Tapeout Template
+# tiny OoO CPU
 
+## Description
 
-1. Add your verilog source files to `source_files` in `info.yaml`. The top level of your chip should remain in `chip.sv` and be named `my_chip`
+This project implements a small Out-of-Order (OoO) CPU capable of issuing, executing, and committing instructions using a modern pipeline structure. It supports basic ALU operations (ADD, SUB, AND, OR, XOR), memory load operations, and HALT.
 
-  
-  
+The processor consists of:
 
-2. Optionally add other details about your project to `info.yaml` as well (this is only for GitHub - your final project submission will involve submitting these in a different format)
+- An **Instruction Queue (IQ)** to buffer incoming instructions.
+- An **ALU Reservation Station** with 2 entries for out-of-order execution.
+- A **Register Alias Table (RAT)** for register renaming.
+- A **Reorder Buffer (ROB)** to ensure in-order commit and precise exceptions.
+- A **Register File (RF)** and **Memory Unit** for execution.
 
-3. Do NOT edit `toplevel_chip.v`  `config.tcl` or `pin_order.cfg`
+For full design details and architecture overview, see `docs/description.pdf`.
 
- # Final Project Submission Details 
-  
-1. Your design must synthesize at 30MHz but you can run it at any arbitrarily-slow frequency (including single-stepping the clock) on the manufactured chip. If your design must run at an exact frequency, it is safest to choose a lower frequency (i.e. 5MHz)
+## IO Specification
 
-  
+| Input/Output   | Width   | Description                                |
+| -------------- | ------- | ------------------------------------------ |
+| `io_in[11:0]`  | 12 bits | 12-bit instruction input (1 per cycle)     |
+| `clock`        | 1 bit   | System clock (30MHz required)              |
+| `reset`        | 1 bit   | Active-high synchronous reset              |
+| `io_out[11:6]` | 6 bits  | Final cycle count                          |
+| `io_out[5:3]`  | 3 bits  | Output register index (0 to 7)             |
+| `io_out[2:0]`  | 3 bits  | Value stored in the register being printed |
 
-2. For your final project, we will ask you to submit some sort of testbench to verify your design. Include all relevant testing files inside the `testbench` repository
+## Instruction Format
 
-  
-  
+- `000`: ADD
+- `001`: SUB
+- `010`: AND
+- `011`: OR
+- `100`: XOR
+- `101`: LD
 
-3. For your final project, we will ask you to submit documentation on how to run/test your design, as well as include your project proposal and progress reports. Include all these files inside the `docs` repository
+- `111`: HALT
 
-  
-  
+## Execution Behavior
 
-4. Optionally, if you use any images in your documentation (diagrams, waveforms, etc) please include them in a separate `img` repository
-
-  
-
-5. Feel free to edit this file and include some basic information about your project (short description, inputs and outputs, diagrams, how to run, etc). An outline is provided below
-
-# Final Project Example Template
-
-This is an example outline you can modify and use in your final project submission. You are not required to use this exact template
-
-## Project Name
-
-A short description of what your project does and how it works. Feel free to include images
-
-## IO
-
-An IO table listing all of your inputs and outputs and their function, like the one below:
-
-| Input/Output	| Description|																
-|-------------|--------------------------------------------------|
-| io_in[0]    | choose vga mode, when 0 640x480. When 1, 800x480 |
-| io_in[11:1] | unused                                           |
-| io_out[2:0] | Red channel                                      |
-| io_out[5:3] | Green channel                                    |
-| io_out[8:6] | Blue channel                                     |
-| io_out[9]   | HS, horizontal sync                              |
-| io_out[10]  | VS, vertical sync                                |
-| io_out[11]  | liveness check.  Toggles every couple of seconds |
+- The CPU fetches and decodes one instruction per cycle.
+- Instructions are issued into either the ALU or Memory reservation station.
+- Instructions execute when operands are ready.
+- Results are committed in program order via the ROB.
+- When execution is done, the final cycle count is frozen.
+- After execution is done, `io_out[5:0]` outputs the 8 register values over 8 cycles.
 
 ## How to Test
 
-A short description of how to test the design post-tapeout
+1. Apply reset high for a few cycles, then deassert.
+2. Feed 12-bit instructions into `io_in` at 1 instruction per cycle.
+3. Wait for the execution to finish.
+4. Observe `io_out`:
+   - `io_out[11:6]`: final cycle count.
+   - `io_out[5:3]`: register index being printed (0 to 7).
+   - `io_out[2:0]`: value in that register.
+
+## Test Considerations
+
+- **ALU and MEM update limitation**: The design only allows **one update per cycle** from either the ALU or Memory unit.  
+  If **both ALU and Memory complete in the same cycle**, only **one of them will be updated in the reorder buffer**.  
+  Therefore, test programs should avoid scheduling simultaneous ALU and MEM completions to ensure correct execution.
+
+- For additional implementation details and timing diagrams, please refer to the documentation in `docs/description.pdf`.
